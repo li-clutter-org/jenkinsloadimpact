@@ -38,8 +38,6 @@ All the good stuff is in the Pipeline so let’s go there and take a look
 
 It’s all in the Groovy script for the pipeline so we will take a look at what it does in some detail.
 
-You can get the code at github &lt;TBD TBD&gt; where it is shared.
-
 Before we dive into the details – let’s get some essentials from your Load Impact account. We need the API key so you can access the API and a test to run.
 
 The API key you get in your Load Impact account when you are logged in
@@ -59,8 +57,6 @@ Now you need to know which test to run. You can list your test configurations us
 <img src="media/image8.png" width="624" height="424" />
 
 So now you have a test id for the test you want to run in your build pipeline and your API key.
-
-All of the code is shared at Github for your download &lt;TBD TBD&gt;
 
 The code has four parts, the initial and then three stages “Kickoff performance test”, “Performance test running” and “Show results”. If you are familiar with Jenkins pipelines you know the stages will be visible in Jenkins when you execute your pipeline including your Load Impact performance test.
 

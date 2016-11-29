@@ -66,11 +66,54 @@ The code has four parts, the initial and then three stages “Kickoff performanc
 
 The initial part of the pipeline code is where you set the test id and the API key.
 
+```groovy
+import groovy.json.JsonSlurperClassic 
+
+@NonCPS
+def jsonParse(def json) {
+    new groovy.json.JsonSlurperClassic().parseText(json)
+}
+
+/* Load Impact test Id */
+def testId = YOUR_TEST_ID_GOES_HERE
+/* API KEY in format user:pass and pass is blank, remember the : */
+def API_KEY = 'YOUR_API_KEY_GOES_HERE:'
+
+def encoded = API_KEY.bytes.encodeBase64().toString()
+```
+
 So replace “YOUR\_TEST\_ID\_GOES\_HERE” with your test id, just the number – not a string.
 
 And replace “YOUR\_API\_KEY\_GOES\_HERE” with your API key. Keep inside the quotes (it is a string) and remember to keep the ‘**:**’ at the end. It is basic AUTH, the username is the API key with a blank password. You could of course user the Jenkins Credentials store for this and get the value from the Credentials Store but that is outside the scope of this sample.
 
 What else is there? We import some stuff to help in handling the json responses from the API when we use it. And at the end of the initial section the API key is encoded so it can be used in calling the API.
+
+```groovy
+stage "Kickoff performance test"
+
+def response = httpRequest httpMode: 'POST', requestBody: "", customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/test-configs/' + testId + '/start'
+
+/* status = 201 is expected */
+if (response.status != 201) {
+  exit ("Could not start test " + testId + ": " + response.status + "\n" + response.content)
+}
+
+def jid = jsonParse(response.content)
+def tid = jid["id"]
+
+timeout (time:5, unit: "MINUTES")
+{
+  waitUntil {
+    /* waitUntil needs to slow down */
+    sleep (time: 10, unit: "SECONDS")
+    
+    def r = httpRequest httpMode: 'GET', customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/tests/'+ tid + '/'
+    def j = jsonParse(r.content)
+    echo "status: " + j["status_text"]
+    return (j["status_text"] == "Running");
+  }    
+}
+```
 
 At the “Kickoff performance test” stage we start by calling the [API to start a test](http://developers.loadimpact.com/api/#post-test-configs-id-start).
 
@@ -83,6 +126,51 @@ Then we let it take a maximum of five minutes for the test to actually kickoff. 
 Slowing down the wait is accomplished by simple sleeping 10 seconds between iterations.
 
 We get that status of the test by [calling the API](http://developers.loadimpact.com/api/#get-tests-id) and parsing the json response to check for the status in the response.
+
+```groovy
+stage "Performance test running"
+
+/*
+get and tell percentage completed
+*/
+maxVULoadTime = 0.0
+sVUL = 0
+valu = 0.0
+waitUntil {
+  /* No need to get state of test run as often */
+  sleep (time: 30, unit: "SECONDS")
+
+  /* Get percent completed */    
+  def r = httpRequest httpMode: 'GET', customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/tests/' + tid + '/results?ids=__li_progress_percent_total'
+  def j = jsonParse(r.content)
+  def size = j["__li_progress_percent_total"].size()
+  def last = j["__li_progress_percent_total"]
+  echo "percentage completed: " + last[size - 1]["value"]
+
+  /* Get vu load time */
+  r = httpRequest httpMode: 'GET', customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/tests/' + tid + '/results?ids=__li_user_load_time'
+  j = jsonParse(r.content)
+
+  sVUL = j["__li_user_load_time"].size()
+  
+  if (sVUL > 0) {
+    echo "last: " + j["__li_user_load_time"][sVUL - 1]["value"]
+      /* set max vu load time */
+    valu = j["__li_user_load_time"][sVUL - 1]["value"]
+    if (valu > maxVULoadTime) {
+      maxVULoadTime = valu
+    }
+
+    /* check if VU Load Time > 1000 msec */
+    /* It will fail the build */
+    if (maxVULoadTime > 1000) {
+     exit ("VU Load Time extended limit of 1 sec: " + maxVULoadTime)
+    }
+  }
+
+  return (last[size - 1]["value"] == 100);
+}
+```
 
 So now the test is running and we have reached the stage of “Performance test running”.
 
@@ -98,9 +186,21 @@ We get the value by calling the same API as before but for the VU Load Time resu
 
 If the value exceeds 1 second we exit the build step and fail the build in this example. The test however will continue to run so a useful addendum to the code could be to abort the test run at this time.
 
+```groovy
+stage "Show results"
+echo "Max VU Load Time: " + maxVULoadTime
+```
+
 Final stage “Show results” we just output the max VU Load Time. It can of course be any result but as a sample. You can of course use this result to decide on further actions in your pipeline.
 
 Before you can run this piece of Groovy code in your pipeline you have to do In-process script approval in Jenkins for
+
+```groovy
+method groovy.json.JsonSlurperClassic parseText java.lang.String
+method java.lang.String getBytes
+new groovy.json.JsonSlurperClassic
+staticMethod org.codehaus.groovy.runtime.EncodingGroovyMethods encodeBase64 byte[]
+```
 
 Finally, we can look at executing the pipeline in Jenkins and just because it looks good, we’ll use [Blue Ocean](https://jenkins.io/projects/blueocean/).
 

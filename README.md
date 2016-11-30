@@ -185,9 +185,10 @@ If the value exceeds 1 second we exit the build step and fail the build in this 
 ```groovy
 stage "Show results"
 echo "Max VU Load Time: " + maxVULoadTime
+echo "Full results at https://app.loadimpact.com/test-runs/" + tid
 ```
 
-Final stage “Show results” we just output the max VU Load Time. It can of course be any result but as a sample. You can of course use this result to decide on further actions in your pipeline.
+Final stage “Show results” we just output the max VU Load Time. It can of course be any result but as a sample. You can of course use this result to decide on further actions in your pipeline. And we tack on a direct link to the full results and analysis in Load Impact.
 
 Before you can run this piece of Groovy code in your pipeline you have to do In-process script approval in Jenkins for
 

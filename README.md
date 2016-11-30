@@ -1,11 +1,11 @@
-Automated Performance Testing with Jenkins pipelines
+ Automated Performance Testing with Jenkins pipelines
 ====================================================
 
 <img src="media/image1.png" width="225" height="312" />
 
 **Jenkins**
 
-Load Impact integrates nicely with Jenkins pipelines, a leading continuous delivery and integration automation platform. Using our robust and extensible APIs you can integrate Load Impact’s world-leading performance testing platform into your automated Jenkins pipeline build and test process.
+Load Impact integrates nicely with Jenkins v2 pipelines, a leading continuous delivery and integration automation platform. Using our robust and extensible APIs you can integrate Load Impact’s world-leading performance testing platform into your automated Jenkins pipeline build and test process.
 
 Load Impact covers your back with everything you need for Web, API and application performance testing. And test scripting is simple.
 

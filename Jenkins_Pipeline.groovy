@@ -102,4 +102,5 @@ waitUntil {
 
 stage "Show results"
 echo "Max VU Load Time: " + maxVULoadTime
+echo "Full results at https://app.loadimpact.com/test-runs/" + tid
 

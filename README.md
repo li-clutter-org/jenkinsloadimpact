@@ -220,6 +220,8 @@ Final stage – Show results.
 
 <img src="media/image13.png" width="624" height="219" />
 
+And there’s also a direct link to the full results and analysis in Load Impact where you can always find all the results of all your tests.
+
 You can add/update/delete tests, user scenarios and data stores using the API and CLI, even stick all of it in your SCM of choice and let all of it be part of your build pipeline.
 
 To dive deeper into using Load Impact from your CI/CD process (or for that matter any external usage) see our [*comprehensive API reference*](http://developers.loadimpact.com/api/) and the accompanying [*CLI*](http://support.loadimpact.com/knowledgebase/articles/833856-automating-load-testing-with-the-load-impact-api).

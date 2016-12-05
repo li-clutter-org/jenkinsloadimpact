@@ -14,7 +14,7 @@ To get started, try this sample of how to include performance testing in your Je
 Continuous Delivery. Continuous performance feedback. Simple.
 -------------------------------------------------------------
 
-This sample assumes you are familiar with [Jenkins](https://jenkins.io). We set up a new pipeline and use the Blue Ocean UI to run because it looks nice.
+This sample assumes you are familiar with [Jenkins](https://jenkins.io). We set up a new pipeline and use the Blue Ocean UI to run because it looks nice. There's only one plugin to install, the [HTTP Request Plugin](https://wiki.jenkins-ci.org/display/JENKINS/HTTP+Request+Plugin).
 
 Is also assumes you have a Load Impact account. [If not, go get one – it’s free](http://loadimpact.com).
 

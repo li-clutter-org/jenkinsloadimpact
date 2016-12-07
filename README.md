@@ -18,7 +18,10 @@ This sample assumes you are familiar with [Jenkins](https://jenkins.io). We set 
 
 Is also assumes you have a Load Impact account. [If not, go get one – it’s free](http://loadimpact.com).
 
-We created a Jenkins pipeline by the name LI\_Pipeline\_Demo\_1
+1. Set up Jenkins Pipelines
+-------------------------------------------------------------
+
+First, you’ll want to set up your Jenkins pipelines. Here’s how we did it: We started by creating this Jenkins pipeline: LI_Pipeline_Demo_1
 
 <img src="media/image2.png" width="624" height="254" />
 
@@ -37,6 +40,9 @@ All the good stuff is in the Pipeline so let’s go there and take a look
 <img src="media/image5.png" width="624" height="349" />
 
 It’s all in the Groovy script for the pipeline so we will take a look at what it does in some detail.
+
+2. Integrate the Load Impact API
+-------------------------------------------------------------
 
 Before we dive into the details – let’s get some essentials from your Load Impact account. We need the API key so you can access the API and a test to run.
 
@@ -57,6 +63,9 @@ Now you need to know which test to run. You can list your test configurations us
 <img src="media/image8.png" width="624" height="424" />
 
 So now you have a test id for the test you want to run in your build pipeline and your API key.
+
+3a. Edit the pipeline code to set the test id and API key
+-------------------------------------------------------------
 
 The code has four parts, the initial and then three stages “Kickoff performance test”, “Performance test running” and “Show results”. If you are familiar with Jenkins pipelines you know the stages will be visible in Jenkins when you execute your pipeline including your Load Impact performance test.
 
@@ -82,7 +91,10 @@ So replace “YOUR\_TEST\_ID\_GOES\_HERE” with your test id, just the number �
 
 And replace “YOUR\_API\_KEY\_GOES\_HERE” with your API key. Keep inside the quotes (it is a string) and remember to keep the ‘**:**’ at the end. It is basic AUTH, the username is the API key with a blank password. You could of course user the Jenkins Credentials store for this and get the value from the Credentials Store but that is outside the scope of this sample.
 
-What else is there? We import some stuff to help in handling the json responses from the API when we use it. And at the end of the initial section the API key is encoded so it can be used in calling the API.
+3b. JSON responses
+-------------------------------------------------------------
+
+We import some stuff to help in handling the json responses from the API when we use it. And at the end of the initial section the API key is encoded so it can be used in calling the API.
 
 ```groovy
 stage "Kickoff performance test"
@@ -110,6 +122,9 @@ timeout (time:5, unit: "MINUTES")
   }    
 }
 ```
+
+3c. Kickoff a performance test
+-------------------------------------------------------------
 
 At the “Kickoff performance test” stage we start by calling the [API to start a test](http://developers.loadimpact.com/api/#post-test-configs-id-start).
 
@@ -168,6 +183,9 @@ waitUntil {
 }
 ```
 
+3d. Run a performance test
+-------------------------------------------------------------
+
 So now the test is running and we have reached the stage of “Performance test running”.
 
 This time we wait until the test has completed, reached the percentage completed value of 100% with a slightly longer sleep between refreshing the status.
@@ -198,6 +216,9 @@ method java.lang.String getBytes
 new groovy.json.JsonSlurperClassic
 staticMethod org.codehaus.groovy.runtime.EncodingGroovyMethods encodeBase64 byte[]
 ```
+
+4. Execute a Jenkins Pipeline
+-------------------------------------------------------------
 
 Finally, we can look at executing the pipeline in Jenkins and just because it looks good, we’ll use [Blue Ocean](https://jenkins.io/projects/blueocean/).
 

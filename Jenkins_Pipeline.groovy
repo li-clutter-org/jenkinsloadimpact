@@ -28,79 +28,80 @@ def API_KEY = 'YOUR_API_KEY_GOES_HERE:'
 
 def encoded = API_KEY.bytes.encodeBase64().toString()
 
-stage "Kickoff performance test"
+def maxVULoadTime = 0.0
+def tid = 0
 
-def response = httpRequest httpMode: 'POST', requestBody: "", customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/test-configs/' + testId + '/start'
+stage("Kickoff performance test") {
+  def response = httpRequest httpMode: 'POST', requestBody: "", customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/test-configs/' + testId + '/start'
 
-/* status = 201 is expected */
-if (response.status != 201) {
-  exit ("Could not start test " + testId + ": " + response.status + "\n" + response.content)
-}
+  /* status = 201 is expected */
+  if (response.status != 201) {
+    exit ("Could not start test " + testId + ": " + response.status + "\n" + response.content)
+  }
 
-def jid = jsonParse(response.content)
-def tid = jid["id"]
+  def jid = jsonParse(response.content)
+  tid = jid["id"]
 
-timeout (time:5, unit: "MINUTES")
-{
-  waitUntil {
-    /* waitUntil needs to slow down */
-    sleep (time: 10, unit: "SECONDS")
-    
-    def r = httpRequest httpMode: 'GET', customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/tests/'+ tid + '/'
-    def j = jsonParse(r.content)
-    echo "status: " + j["status_text"]
-    return (j["status_text"] == "Running");
-  }    
+  timeout (time:5, unit: "MINUTES")
+  {
+    waitUntil {
+      /* waitUntil needs to slow down */
+      sleep (time: 10, unit: "SECONDS")
+
+      def r = httpRequest httpMode: 'GET', customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/tests/'+ tid + '/'
+      def j = jsonParse(r.content)
+      echo "status: " + j["status_text"]
+      return (j["status_text"] == "Running");
+    }
+  }
 }
 
 /* content is something like {"id":3715298}
    where id is the started test run id
 */
+stage("Performance test running") {
+  /*
+  get and tell percentage completed
+  */
+  sVUL = 0
+  valu = 0.0
+  waitUntil {
+    /* No need to get state of test run as often */
+    sleep (time: 30, unit: "SECONDS")
 
-stage "Performance test running"
+    /* Get percent completed */
+    def r = httpRequest httpMode: 'GET', customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/tests/' + tid + '/results?ids=__li_progress_percent_total'
+    def j = jsonParse(r.content)
+    def size = j["__li_progress_percent_total"].size()
+    def last = j["__li_progress_percent_total"]
+    echo "percentage completed: " + last[size - 1]["value"]
 
-/*
-get and tell percentage completed
-*/
-maxVULoadTime = 0.0
-sVUL = 0
-valu = 0.0
-waitUntil {
-  /* No need to get state of test run as often */
-  sleep (time: 30, unit: "SECONDS")
+    /* Get vu load time */
+    r = httpRequest httpMode: 'GET', customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/tests/' + tid + '/results?ids=__li_user_load_time'
+    j = jsonParse(r.content)
 
-  /* Get percent completed */    
-  def r = httpRequest httpMode: 'GET', customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/tests/' + tid + '/results?ids=__li_progress_percent_total'
-  def j = jsonParse(r.content)
-  def size = j["__li_progress_percent_total"].size()
-  def last = j["__li_progress_percent_total"]
-  echo "percentage completed: " + last[size - 1]["value"]
+    sVUL = j["__li_user_load_time"].size()
 
-  /* Get vu load time */
-  r = httpRequest httpMode: 'GET', customHeaders: [[name: 'Authorization', value: 'Basic ' + encoded]], url: 'https://api.loadimpact.com/v2/tests/' + tid + '/results?ids=__li_user_load_time'
-  j = jsonParse(r.content)
+    if (sVUL > 0) {
+      echo "last: " + j["__li_user_load_time"][sVUL - 1]["value"]
+        /* set max vu load time */
+      valu = j["__li_user_load_time"][sVUL - 1]["value"]
+      if (valu > maxVULoadTime) {
+        maxVULoadTime = valu
+      }
 
-  sVUL = j["__li_user_load_time"].size()
-  
-  if (sVUL > 0) {
-    echo "last: " + j["__li_user_load_time"][sVUL - 1]["value"]
-      /* set max vu load time */
-    valu = j["__li_user_load_time"][sVUL - 1]["value"]
-    if (valu > maxVULoadTime) {
-      maxVULoadTime = valu
+      /* check if VU Load Time > 1000 msec */
+      /* It will fail the build */
+      if (maxVULoadTime > 1000) {
+       exit ("VU Load Time extended limit of 1 sec: " + maxVULoadTime)
+      }
     }
 
-    /* check if VU Load Time > 1000 msec */
-    /* It will fail the build */
-    if (maxVULoadTime > 1000) {
-     exit ("VU Load Time extended limit of 1 sec: " + maxVULoadTime)
-    }
+    return (last[size - 1]["value"] == 100);
   }
-
-  return (last[size - 1]["value"] == 100);
 }
 
-stage "Show results"
-echo "Max VU Load Time: " + maxVULoadTime
-echo "Full results at https://app.loadimpact.com/test-runs/" + tid
-
+stage("Show results") {
+  echo "Max VU Load Time: " + maxVULoadTime
+  echo "Full results at https://app.loadimpact.com/test-runs/" + tid
+}
